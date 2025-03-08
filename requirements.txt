@@ -12,3 +12,4 @@ transformers
 rank_bm25
 langchain_chroma
 langchain-huggingface
+sklearn

@@ -1,5 +1,6 @@
 """"""
 import chromadb
+from sklearn.cluster import KMeans ,DBSCAN
 from functools import wraps
 from sentence_transformers import SentenceTransformer
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -9,6 +10,8 @@ from langchain.indexes import index, SQLRecordManager
 from langchain_community.document_loaders import DirectoryLoader
 from .utils import  clean_markdown , logger , handle_exceptions
 from .config import Config
+from langchain.docstore.document import Document
+from typing import List
 
 
 
@@ -116,6 +119,47 @@ class StoreEmbeddings:
 
         logger.info(f"Created {len(docs_chunks)} document chunks.")
         return docs_chunks
+    
+    @handle_exceptions
+    def similarity_chunking_dbscan(self, documents: List[Document], eps: float = 0.5, min_samples: int = 2) -> List[Document]:
+        """
+        Clusters text documents into semantically similar chunks using DBSCAN (Density-Based Spatial Clustering of Applications with Noise).
+        
+        Args:
+            documents (List[Document]): List of Document objects to be clustered.
+            eps (float, optional): The maximum distance between two samples for them to be considered as in the same cluster. Defaults to 0.5.
+            min_samples (int, optional): The number of samples required to form a dense region. Defaults to 2.
+        
+        Returns:
+            List[Document]: A list of Document objects representing clustered text chunks.
+        """
+        # Get the embedding model
+        model = self.get_embeddings()
+
+        # Extract text content from Document objects
+        text_list = [doc.page_content for doc in documents]
+
+        # Generate embeddings for extracted text
+        embeddings = model.embed_documents(text_list)
+
+        # Apply DBSCAN clustering using cosine distance
+        dbscan = DBSCAN(eps=eps, min_samples=min_samples, metric="cosine")
+        labels = dbscan.fit_predict(embeddings)
+
+        # Group text chunks by cluster, ignoring noise (-1 label)
+        clusters = {}
+        for i, label in enumerate(labels):
+            if label == -1:
+                # Ignore noise points
+                continue
+            clusters.setdefault(label, []).append(text_list[i])
+
+        # Combine grouped texts into chunks
+        text_chunks = [" ".join(clusters[i]) for i in sorted(clusters.keys())]
+
+        # Convert each text chunk back into a Document object
+        return [Document(page_content=chunk) for chunk in text_chunks]
+
 
     @handle_exceptions
     def _clean_and_update(self, docs, vectorstore, record_manager):
