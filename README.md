@@ -49,6 +49,10 @@ venv\Scripts\activate  # On Windows
 ```sh
 pip install -r requirements.txt
 ```
+###Note-
+```
+Please provide Open AIkey in the config file to run the endpoint.
+```
 
 ### 4️⃣ Run the FastAPI Server
 ```sh
