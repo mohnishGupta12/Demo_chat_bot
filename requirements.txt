@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+openai
+sentence-transformers
+langchain
+langchain-openai
+langchain-community
+markdown
+mistune
+chromadb
+transformers
+rank_bm25
+langchain_chroma
+langchain-huggingface
